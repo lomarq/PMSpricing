@@ -1,0 +1,69 @@
+{
+  "password": "admin123",
+  "logo": null,
+  "products": [
+    {
+      "id": "PMS185",
+      "colorName": "PANTONE 185 C",
+      "priceTiers": [
+        { "pounds": 5, "pricePerPound": 10.5 },
+        { "pounds": 25, "pricePerPound": 9.5 },
+        { "pounds": 90, "pricePerPound": 8.75 },
+        { "pounds": 500, "pricePerPound": 8.25 }
+      ],
+      "tariff": 5
+    },
+    {
+      "id": "PMS286",
+      "colorName": "PANTONE 286 C",
+      "priceTiers": [
+        { "pounds": 5, "pricePerPound": 11 },
+        { "pounds": 25, "pricePerPound": 10 },
+        { "pounds": 90, "pricePerPound": 9.2 },
+        { "pounds": 500, "pricePerPound": 8.6 }
+      ]
+    },
+    {
+      "id": "PMS354",
+      "colorName": "PANTONE 354 C",
+      "priceTiers": [
+        { "pounds": 5, "pricePerPound": 12.25 },
+        { "pounds": 25, "pricePerPound": 11.25 },
+        { "pounds": 90, "pricePerPound": 10.5 },
+        { "pounds": 500, "pricePerPound": 9.9 }
+      ],
+      "tariff": 7.5
+    },
+    {
+      "id": "PMSBLACK",
+      "colorName": "PANTONE BLACK C",
+      "priceTiers": [
+        { "pounds": 5, "pricePerPound": 9 },
+        { "pounds": 25, "pricePerPound": 8 },
+        { "pounds": 90, "pricePerPound": 7.5 },
+        { "pounds": 500, "pricePerPound": 7 }
+      ]
+    },
+    {
+      "id": "PMSYELLOW",
+      "colorName": "PANTONE YELLOW C",
+      "priceTiers": [
+        { "pounds": 5, "pricePerPound": 10 },
+        { "pounds": 25, "pricePerPound": 9 },
+        { "pounds": 90, "pricePerPound": 8.25 },
+        { "pounds": 500, "pricePerPound": 7.75 }
+      ],
+      "tariff": 5
+    },
+    {
+      "id": "PMS032",
+      "colorName": "PANTONE 032 C",
+      "priceTiers": [
+        { "pounds": 5, "pricePerPound": 11.5 },
+        { "pounds": 25, "pricePerPound": 10.5 },
+        { "pounds": 90, "pricePerPound": 9.75 },
+        { "pounds": 500, "pricePerPound": 9.15 }
+      ]
+    }
+  ]
+}

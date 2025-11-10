@@ -1,0 +1,5 @@
+{
+  "name": "Price List App",
+  "description": "An application to manage product price lists with different roles for editors and observers. Data is linked to a simulated Google Sheet, and users can easily search for prices based on color name and weight in pounds.",
+  "requestFramePermissions": []
+}
