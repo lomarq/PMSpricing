@@ -327,10 +327,20 @@ const openCsvUploadModal = () => {
                 if (newProducts.length === 0) throw new Error("No valid product rows found.");
 
                 await api.saveAllProducts(newProducts);
-                showMessageInModal('modal-message-container', `${newProducts.length} products loaded.`, 'success');
-                document.getElementById('modal-cancel-btn').textContent = 'Close';
-                setButtonState('modal-process-btn', 'Process File', true); // Keep disabled after success
+                
+                // Automatically download the updated db.json
+                handleDownloadData();
                 reloadDataFromSession();
+
+                const successMessage = `
+                    <strong>${newProducts.length} products loaded successfully!</strong><br><br>
+                    The updated data file (<code class="font-mono bg-gray-200 dark:bg-gray-600 rounded px-1">db.json</code>) has been automatically downloaded.<br>
+                    <strong class="mt-2 block">To make these changes permanent for all users, please replace the file on your web server with the one you just downloaded.</strong>
+                `;
+                showMessageInModal('modal-message-container', successMessage, 'success');
+
+                document.getElementById('modal-cancel-btn').textContent = 'Close';
+                setButtonState('modal-process-btn', 'Process File', true);
             } catch (err) {
                 showMessageInModal('modal-message-container', err.message);
                 setButtonState('modal-process-btn', 'Process File', false);
