@@ -25,7 +25,7 @@ const icons = {
   key: `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H5v-2H3v-2H1v-4a6 6 0 016-6h4a6 6 0 016 6z" /></svg>`,
   image: `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>`,
   logo: `<svg class="h-8 w-8 text-blue-600 dark:text-blue-500" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2L2 7V17L12 22L22 17V7L12 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /><path d="M2 7L12 12M12 22V12M22 7L12 12M16.5 4.5L7.5 9.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>`,
-  spinner: `<svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>`
+  spinner: `<svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>`
 };
 
 // --- HELPER FUNCTIONS ---
@@ -64,8 +64,25 @@ const safeParseFloat = (str) => {
     return isNaN(num) ? null : num;
 };
 
+// --- RENDER FUNCTIONS ---
+const renderApp = () => {
+  const html = `
+    <div class="min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
+      ${createHeaderHTML()}
+      ${createMainContentHTML()}
+    </div>
+    <div id="modal-container"></div>
+  `;
+  appContainer.innerHTML = html;
+  attachEventListeners();
+};
 
-// --- TEMPLATE GENERATORS ---
+const renderMainContent = () => {
+    const main = appContainer.querySelector('main');
+    if(main) {
+        main.outerHTML = createMainContentHTML();
+    }
+};
 
 const createHeaderHTML = () => {
   return `
@@ -108,17 +125,13 @@ const createHeaderHTML = () => {
 };
 
 const createMainContentHTML = () => {
-  const filteredProducts = state.products.filter(p =>
-    p.colorName.toLowerCase().includes(state.searchTerm.toLowerCase())
-  );
-
   return `
     <main class="container mx-auto p-4 sm:p-6 lg:p-8">
       <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
         <div class="relative w-full md:w-80">
           <input id="search-bar" type="text" value="${state.searchTerm}" placeholder="Search by color name..." class="w-full px-4 py-2 text-gray-700 bg-white dark:bg-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
           <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
           </div>
         </div>
         ${state.userRole === 'Editor' ? `
@@ -130,16 +143,24 @@ const createMainContentHTML = () => {
           </div>
         ` : ''}
       </div>
-      <div id="product-list-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        ${state.isLoading ? `<div class="text-center p-8 text-gray-500 dark:text-gray-400 col-span-full">Loading application data...</div>` :
-          state.error ? `<div class="text-center p-8 text-red-500 col-span-full">${state.error}</div>` :
-          filteredProducts.length > 0 ? filteredProducts.map(createProductCardHTML).join('') :
-          `<p class="text-center text-gray-500 dark:text-gray-400 mt-8 col-span-full">No products found.</p>`
-        }
+      <div id="product-list-container">
+        ${createProductListHTML()}
       </div>
     </main>
   `;
 };
+
+const createProductListHTML = () => {
+    const filteredProducts = state.products.filter(p =>
+        p.colorName.toLowerCase().includes(state.searchTerm.toLowerCase())
+    );
+
+    if (state.isLoading) return `<div class="text-center p-8 text-gray-500 dark:text-gray-400 col-span-full">Loading application data...</div>`;
+    if (state.error) return `<div class="text-center p-8 text-red-500 col-span-full">${state.error}</div>`;
+    if (filteredProducts.length === 0) return `<p class="text-center text-gray-500 dark:text-gray-400 mt-8 col-span-full">No products found.</p>`;
+
+    return `<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">${filteredProducts.map(createProductCardHTML).join('')}</div>`;
+}
 
 const createProductCardHTML = (product) => {
   const isEditor = state.userRole === 'Editor';
@@ -184,200 +205,8 @@ const createProductCardHTML = (product) => {
   `;
 };
 
-// --- RENDER FUNCTIONS ---
-
-const renderApp = () => {
-  const html = `
-    ${createHeaderHTML()}
-    ${createMainContentHTML()}
-    <div id="modal-container"></div>
-  `;
-  appContainer.innerHTML = html;
-  attachEventListeners();
-};
-
-const renderProductList = () => {
-    const container = document.getElementById('product-list-container');
-    if (!container) return;
-
-    const filteredProducts = state.products.filter(p =>
-        p.colorName.toLowerCase().includes(state.searchTerm.toLowerCase())
-    );
-    
-    container.innerHTML = state.isLoading ? `<div class="text-center p-8 text-gray-500 dark:text-gray-400 col-span-full">Loading application data...</div>` :
-        state.error ? `<div class="text-center p-8 text-red-500 col-span-full">${state.error}</div>` :
-        filteredProducts.length > 0 ? filteredProducts.map(createProductCardHTML).join('') :
-        `<p class="text-center text-gray-500 dark:text-gray-400 mt-8 col-span-full">No products found.</p>`;
-};
 
 // --- MODAL HANDLING ---
-
-const createCsvUploadModalHTML = () => {
-    return `
-    <div data-modal class="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 p-4">
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-lg" onclick="event.stopPropagation()">
-        <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-          <h2 class="text-xl font-bold text-gray-900 dark:text-white">Upload Products from CSV</h2>
-          <button type="button" data-action="close-modal" class="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none" aria-label="Close modal">
-            ${icons.close}
-          </button>
-        </div>
-        <div class="p-6 space-y-4">
-            <div class="bg-blue-50 dark:bg-gray-700 border-l-4 border-blue-400 p-4 rounded-md text-left">
-                <p class="text-sm text-blue-800 dark:text-blue-200">
-                  This will <strong class="font-semibold">replace all current products</strong> with data from the CSV file. Your logo and editor password will not be affected.
-                </p>
-                <p class="text-xs text-blue-700 dark:text-blue-300 mt-2">
-                    <strong>Required Headers:</strong> <code class="font-mono text-xs bg-gray-200 dark:bg-gray-600 rounded px-1">id, colorname, price_5_24, price_25_89, price_90_499, price_500_plus</code>
-                </p>
-                 <p class="text-xs text-blue-700 dark:text-blue-300 mt-1">
-                    Empty price cells will be filled with the last valid price from their row.
-                </p>
-            </div>
-            <div>
-              <label for="csv-upload-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Select CSV File
-              </label>
-              <input
-                id="csv-upload-input"
-                type="file"
-                accept=".csv, text/csv"
-                class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-blue-900 dark:file:text-blue-200 dark:hover:file:bg-blue-800"
-              />
-            </div>
-            <div id="csv-message-container"></div>
-        </div>
-        <div class="p-6 bg-gray-50 dark:bg-gray-900 rounded-b-lg flex justify-end gap-4">
-          <button id="csv-cancel-btn" type="button" data-action="close-modal" class="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500">
-            Cancel
-          </button>
-          <button id="csv-process-btn" type="button" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-green-400 disabled:cursor-not-allowed flex items-center gap-2" disabled>
-            Process File
-          </button>
-        </div>
-      </div>
-    </div>
-  `;
-};
-
-const openCsvUploadModal = () => {
-    openModal(createCsvUploadModalHTML());
-
-    const fileInput = document.getElementById('csv-upload-input');
-    const processBtn = document.getElementById('csv-process-btn');
-    const cancelBtn = document.getElementById('csv-cancel-btn');
-    const messageContainer = document.getElementById('csv-message-container');
-    
-    let selectedFile = null;
-
-    fileInput.addEventListener('change', (e) => {
-        if (e.target.files && e.target.files.length > 0) {
-            selectedFile = e.target.files[0];
-            processBtn.disabled = false;
-            messageContainer.innerHTML = ''; // Clear previous messages
-        } else {
-            selectedFile = null;
-            processBtn.disabled = true;
-        }
-    });
-
-    processBtn.addEventListener('click', async () => {
-        if (!selectedFile) {
-            messageContainer.innerHTML = `<p class="text-sm text-red-500 mt-2">Please select a file to upload.</p>`;
-            return;
-        }
-
-        processBtn.disabled = true;
-        processBtn.innerHTML = `${icons.spinner} Processing...`;
-        messageContainer.innerHTML = '';
-
-        const reader = new FileReader();
-        reader.onload = async (event) => {
-            try {
-                const text = event.target?.result;
-                if (!text) throw new Error('File is empty or could not be read.');
-
-                const lines = text.split(/\r\n|\n/);
-                if (lines[0].charCodeAt(0) === 0xFEFF) { // Remove BOM
-                    lines[0] = lines[0].substring(1);
-                }
-
-                const REQUIRED_HEADERS = ['id', 'colorname', 'price_5_24', 'price_25_89', 'price_90_499', 'price_500_plus'];
-                const POUND_LEVELS = [5, 25, 90, 500];
-
-                const headerRow = lines.shift()?.toLowerCase() ?? '';
-                const headers = parseCsvRow(headerRow).map(h => h.replace(/"/g, '').trim());
-                
-                const headerMap = {};
-                headers.forEach((h, i) => { headerMap[h] = i; });
-
-                const missingHeaders = REQUIRED_HEADERS.filter(h => headerMap[h] === undefined);
-                if (missingHeaders.length > 0) {
-                    throw new Error(`CSV headers are incorrect or missing. Missing: [${missingHeaders.join(', ')}].`);
-                }
-
-                const newProducts = [];
-                lines.forEach((line, index) => {
-                    if (line.trim() === '') return;
-                    
-                    const values = parseCsvRow(line);
-                    const priceValues = REQUIRED_HEADERS.slice(2).map(h => safeParseFloat(values[headerMap[h]]));
-
-                    let lastValidPrice = null;
-                    for (let i = 0; i < priceValues.length; i++) {
-                        if (priceValues[i] !== null) {
-                            lastValidPrice = priceValues[i];
-                        } else if (lastValidPrice !== null) {
-                            priceValues[i] = lastValidPrice;
-                        }
-                    }
-                    if(lastValidPrice !== null) {
-                        for(let i=0; i < priceValues.length; i++) {
-                            if(priceValues[i] === null) priceValues[i] = lastValidPrice;
-                        }
-                    }
-
-                    if (priceValues.some(p => p === null)) {
-                        console.warn(`Skipping row ${index + 2}: Contains a row with no valid prices.`);
-                        return;
-                    }
-
-                    const priceTiers = POUND_LEVELS.map((pounds, i) => ({
-                        pounds,
-                        pricePerPound: priceValues[i],
-                    }));
-                    
-                    newProducts.push({
-                        id: values[headerMap['id']].replace(/"/g, ''),
-                        colorName: values[headerMap['colorname']].replace(/"/g, ''),
-                        priceTiers,
-                    });
-                });
-
-                if (newProducts.length === 0) {
-                  throw new Error("File processed, but no valid product rows were found. Please check the file's content, formatting, and headers.");
-                }
-
-                await api.saveAllProducts(newProducts);
-                messageContainer.innerHTML = `<p class="text-sm text-green-500 mt-2">${newProducts.length} product(s) successfully loaded from CSV.</p>`;
-                cancelBtn.textContent = 'Close';
-                processBtn.innerHTML = 'Process File';
-                reloadDataFromSession();
-
-            } catch (err) {
-                messageContainer.innerHTML = `<p class="text-sm text-red-500 mt-2">${err.message || 'An unexpected error occurred.'}</p>`;
-                 processBtn.disabled = false;
-                 processBtn.innerHTML = 'Process File';
-            }
-        };
-        reader.onerror = () => {
-            messageContainer.innerHTML = `<p class="text-sm text-red-500 mt-2">Failed to read the file.</p>`;
-            processBtn.disabled = false;
-            processBtn.innerHTML = 'Process File';
-        };
-        reader.readAsText(selectedFile);
-    });
-};
 
 const openModal = (modalHTML) => {
     const modalContainer = document.getElementById('modal-container');
@@ -385,32 +214,508 @@ const openModal = (modalHTML) => {
         modalContainer.innerHTML = modalHTML;
         const modalElement = modalContainer.querySelector('[data-modal]');
         modalElement?.addEventListener('click', (e) => {
-            if (e.target === modalElement || e.target.closest('[data-action="close-modal"]')) {
-                closeModal();
-            }
+            if (e.target === modalElement) closeModal();
         });
-        document.addEventListener('keydown', handleEscKey);
+        modalContainer.querySelector('[data-action="close-modal"]')?.addEventListener('click', closeModal);
+        document.addEventListener('keydown', handleEscKey, { once: true });
     }
 };
 
 const closeModal = () => {
     const modalContainer = document.getElementById('modal-container');
-    if (modalContainer) {
-        modalContainer.innerHTML = '';
-    }
+    if (modalContainer) modalContainer.innerHTML = '';
     document.removeEventListener('keydown', handleEscKey);
 };
 
 const handleEscKey = (e) => {
-    if (e.key === 'Escape') {
-        closeModal();
+    if (e.key === 'Escape') closeModal();
+};
+
+const showMessageInModal = (containerId, text, type = 'error') => {
+    const container = document.getElementById(containerId);
+    if (container) {
+        const color = type === 'error' ? 'red' : 'green';
+        container.innerHTML = `<p class="text-sm text-${color}-500 mt-2">${text}</p>`;
     }
 };
+
+const setButtonState = (buttonId, text, disabled = false) => {
+    const button = document.getElementById(buttonId);
+    if(button) {
+        button.disabled = disabled;
+        button.innerHTML = text;
+    }
+}
+
+
+// --- MODAL IMPLEMENTATIONS ---
+
+const openCsvUploadModal = () => {
+    const modalHTML = `
+    <div data-modal class="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 p-4">
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-lg" onclick="event.stopPropagation()">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+          <h2 class="text-xl font-bold text-gray-900 dark:text-white">Upload Products from CSV</h2>
+          <button type="button" data-action="close-modal" class="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none">${icons.close}</button>
+        </div>
+        <div class="p-6 space-y-4">
+            <div class="bg-blue-50 dark:bg-gray-700 border-l-4 border-blue-400 p-4 rounded-md text-left">
+                <p class="text-sm text-blue-800 dark:text-blue-200">This will <strong class="font-semibold">replace all current products</strong>.</p>
+                <p class="text-xs text-blue-700 dark:text-blue-300 mt-2"><strong>Required Headers:</strong> <code class="font-mono text-xs bg-gray-200 dark:bg-gray-600 rounded px-1">id, colorname, price_5_24, price_25_89, price_90_499, price_500_plus</code></p>
+            </div>
+            <input id="csv-upload-input" type="file" accept=".csv, text/csv" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-blue-900 dark:file:text-blue-200 dark:hover:file:bg-blue-800" />
+            <div id="modal-message-container"></div>
+        </div>
+        <div class="p-6 bg-gray-50 dark:bg-gray-900 rounded-b-lg flex justify-end gap-4">
+          <button id="modal-cancel-btn" type="button" data-action="close-modal" class="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500">Cancel</button>
+          <button id="modal-process-btn" type="button" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-green-400 disabled:cursor-not-allowed flex items-center gap-2" disabled>Process File</button>
+        </div>
+      </div>
+    </div>`;
+    openModal(modalHTML);
+
+    const fileInput = document.getElementById('csv-upload-input');
+    const processBtn = document.getElementById('modal-process-btn');
+    let selectedFile = null;
+
+    fileInput.addEventListener('change', (e) => {
+        selectedFile = e.target.files?.[0];
+        processBtn.disabled = !selectedFile;
+        showMessageInModal('modal-message-container', '');
+    });
+
+    processBtn.addEventListener('click', async () => {
+        if (!selectedFile) return;
+        setButtonState('modal-process-btn', `${icons.spinner} Processing...`, true);
+
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+            try {
+                const text = event.target?.result;
+                if (!text) throw new Error('File is empty.');
+
+                const lines = text.split(/\r\n|\n/).filter(Boolean);
+                if (lines[0].charCodeAt(0) === 0xFEFF) lines[0] = lines[0].substring(1);
+
+                const REQUIRED_HEADERS = ['id', 'colorname', 'price_5_24', 'price_25_89', 'price_90_499', 'price_500_plus'];
+                const POUND_LEVELS = [5, 25, 90, 500];
+                const headerRow = lines.shift()?.toLowerCase() ?? '';
+                const headers = parseCsvRow(headerRow).map(h => h.replace(/"/g, '').trim());
+                
+                const headerMap = headers.reduce((acc, h, i) => ({...acc, [h]: i }), {});
+                const missingHeaders = REQUIRED_HEADERS.filter(h => headerMap[h] === undefined);
+                if (missingHeaders.length > 0) throw new Error(`Missing headers: [${missingHeaders.join(', ')}].`);
+
+                const newProducts = lines.map((line, index) => {
+                    const values = parseCsvRow(line);
+                    const priceValues = REQUIRED_HEADERS.slice(2).map(h => safeParseFloat(values[headerMap[h]]));
+
+                    let lastValidPrice = priceValues.reduce((last, current) => current ?? last, null);
+                    if (!lastValidPrice) {
+                        console.warn(`Skipping row ${index + 2}: No valid prices.`);
+                        return null;
+                    }
+                    const finalPrices = priceValues.map(p => p ?? lastValidPrice);
+
+                    return {
+                        id: values[headerMap['id']].replace(/"/g, ''),
+                        colorName: values[headerMap['colorname']].replace(/"/g, ''),
+                        priceTiers: POUND_LEVELS.map((pounds, i) => ({ pounds, pricePerPound: finalPrices[i] })),
+                    };
+                }).filter(Boolean);
+
+                if (newProducts.length === 0) throw new Error("No valid product rows found.");
+
+                await api.saveAllProducts(newProducts);
+                showMessageInModal('modal-message-container', `${newProducts.length} products loaded.`, 'success');
+                document.getElementById('modal-cancel-btn').textContent = 'Close';
+                setButtonState('modal-process-btn', 'Process File', true); // Keep disabled after success
+                reloadDataFromSession();
+            } catch (err) {
+                showMessageInModal('modal-message-container', err.message);
+                setButtonState('modal-process-btn', 'Process File', false);
+            }
+        };
+        reader.onerror = () => {
+            showMessageInModal('modal-message-container', 'Failed to read the file.');
+            setButtonState('modal-process-btn', 'Process File', false);
+        };
+        reader.readAsText(selectedFile);
+    });
+};
+
+const openDbUploadModal = () => {
+    const modalHTML = `
+    <div data-modal class="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 p-4">
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-lg" onclick="event.stopPropagation()">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+          <h2 class="text-xl font-bold text-gray-900 dark:text-white">Upload Data File</h2>
+          <button type="button" data-action="close-modal" class="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none">${icons.close}</button>
+        </div>
+        <div class="p-6 space-y-4">
+            <div class="bg-blue-50 dark:bg-gray-700 border-l-4 border-blue-400 p-4 rounded-md text-left">
+                <p class="text-sm text-blue-800 dark:text-blue-200">This will <strong class="font-semibold">replace all current data</strong> with the contents of the selected <code class="font-mono bg-gray-200 dark:bg-gray-600 rounded px-1">db.json</code> file.</p>
+            </div>
+            <input id="db-upload-input" type="file" accept=".json" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-blue-900 dark:file:text-blue-200 dark:hover:file:bg-blue-800" />
+            <div id="modal-message-container"></div>
+        </div>
+        <div class="p-6 bg-gray-50 dark:bg-gray-900 rounded-b-lg flex justify-end gap-4">
+          <button id="modal-cancel-btn" type="button" data-action="close-modal" class="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500">Cancel</button>
+          <button id="modal-process-btn" type="button" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-green-400 disabled:cursor-not-allowed flex items-center gap-2" disabled>Process File</button>
+        </div>
+      </div>
+    </div>`;
+    openModal(modalHTML);
+
+    const fileInput = document.getElementById('db-upload-input');
+    const processBtn = document.getElementById('modal-process-btn');
+    let selectedFile = null;
+
+    fileInput.addEventListener('change', (e) => {
+        selectedFile = e.target.files?.[0];
+        processBtn.disabled = !selectedFile;
+        showMessageInModal('modal-message-container', '');
+    });
+
+    processBtn.addEventListener('click', () => {
+        if (!selectedFile) return;
+        setButtonState('modal-process-btn', `${icons.spinner} Processing...`, true);
+
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+            try {
+                const data = JSON.parse(event.target.result);
+                if (typeof data !== 'object' || !Array.isArray(data.products) || typeof data.password !== 'string') {
+                    throw new Error('Invalid db.json format.');
+                }
+                await api.setFullDataState(data);
+                showMessageInModal('modal-message-container', 'Successfully loaded new data file.', 'success');
+                document.getElementById('modal-cancel-btn').textContent = 'Close';
+                reloadDataFromSession();
+            } catch (err) {
+                showMessageInModal('modal-message-container', err.message);
+                setButtonState('modal-process-btn', 'Process File', false);
+            }
+        };
+        reader.onerror = () => {
+             showMessageInModal('modal-message-container', 'Failed to read file.');
+             setButtonState('modal-process-btn', 'Process File', false);
+        };
+        reader.readAsText(selectedFile);
+    });
+};
+
+const openUploadLogoModal = () => {
+    const modalHTML = `
+    <div data-modal class="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 p-4">
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-md" onclick="event.stopPropagation()">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+          <h2 class="text-xl font-bold text-gray-900 dark:text-white">Upload Company Logo</h2>
+          <button type="button" data-action="close-modal" class="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none">${icons.close}</button>
+        </div>
+        <div class="p-6 space-y-4">
+            <div id="logo-preview-box" class="flex justify-center items-center w-full h-32 bg-gray-100 dark:bg-gray-700 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600">
+                <span class="text-gray-500 dark:text-gray-400">Image Preview</span>
+            </div>
+            <input id="logo-upload-input" type="file" accept="image/*" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-blue-900 dark:file:text-blue-200 dark:hover:file:bg-blue-800" />
+            <div id="modal-message-container"></div>
+        </div>
+        <div class="p-6 bg-gray-50 dark:bg-gray-900 rounded-b-lg flex justify-end gap-4">
+          <button type="button" data-action="close-modal" class="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500">Cancel</button>
+          <button id="modal-save-btn" type="button" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed flex items-center gap-2" disabled>${icons.upload} Save Logo</button>
+        </div>
+      </div>
+    </div>`;
+    openModal(modalHTML);
+
+    const fileInput = document.getElementById('logo-upload-input');
+    const saveBtn = document.getElementById('modal-save-btn');
+    const previewBox = document.getElementById('logo-preview-box');
+    let selectedFile = null;
+    let objectUrl = null;
+
+    fileInput.addEventListener('change', (e) => {
+        const file = e.target.files?.[0];
+        if (objectUrl) URL.revokeObjectURL(objectUrl);
+        
+        if (file && file.type.startsWith('image/')) {
+            selectedFile = file;
+            objectUrl = URL.createObjectURL(selectedFile);
+            previewBox.innerHTML = `<img src="${objectUrl}" alt="Logo preview" class="max-h-full max-w-full object-contain" />`;
+            saveBtn.disabled = false;
+            showMessageInModal('modal-message-container', '');
+        } else {
+            selectedFile = null;
+            previewBox.innerHTML = `<span class="text-gray-500 dark:text-gray-400">Image Preview</span>`;
+            saveBtn.disabled = true;
+            if(file) showMessageInModal('modal-message-container', 'Please select a valid image file.');
+        }
+    });
+
+    saveBtn.addEventListener('click', () => {
+        if (!selectedFile) return;
+        setButtonState('modal-save-btn', `${icons.spinner} Saving...`, true);
+
+        const reader = new FileReader();
+        reader.onload = async () => {
+            try {
+                await api.saveLogo(reader.result);
+                reloadDataFromSession();
+                closeModal();
+            } catch (err) {
+                showMessageInModal('modal-message-container', 'Failed to save logo.');
+                setButtonState('modal-save-btn', `${icons.upload} Save Logo`, false);
+            }
+        };
+        reader.onerror = () => {
+            showMessageInModal('modal-message-container', 'Failed to read file.');
+            setButtonState('modal-save-btn', `${icons.upload} Save Logo`, false);
+        };
+        reader.readAsDataURL(selectedFile);
+    });
+};
+
+const openChangePasswordModal = () => {
+    const modalHTML = `
+    <div data-modal class="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 p-4">
+      <form id="change-password-form" class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-sm" onclick="event.stopPropagation()">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+          <h2 class="text-xl font-bold text-gray-900 dark:text-white">Change Password</h2>
+          <button type="button" data-action="close-modal" class="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none">${icons.close}</button>
+        </div>
+        <div class="p-6 space-y-4">
+            <div class="relative"><div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">${icons.lock}</div><input id="current-password" type="password" placeholder="Current Password" required class="w-full pl-10 pr-3 py-2 text-gray-700 bg-white dark:bg-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" /></div>
+            <div class="relative"><div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">${icons.lock}</div><input id="new-password" type="password" placeholder="New Password" required class="w-full pl-10 pr-3 py-2 text-gray-700 bg-white dark:bg-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" /></div>
+            <div class="relative"><div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">${icons.lock}</div><input id="confirm-password" type="password" placeholder="Confirm New Password" required class="w-full pl-10 pr-3 py-2 text-gray-700 bg-white dark:bg-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" /></div>
+            <div id="modal-message-container"></div>
+        </div>
+        <div class="p-6 bg-gray-50 dark:bg-gray-900 rounded-b-lg flex justify-end gap-4">
+          <button type="button" data-action="close-modal" class="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500">Cancel</button>
+          <button id="modal-save-btn" type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed flex items-center justify-center min-w-[150px]">Update Password</button>
+        </div>
+      </form>
+    </div>`;
+    openModal(modalHTML);
+
+    document.getElementById('change-password-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const current = document.getElementById('current-password').value;
+        const newPass = document.getElementById('new-password').value;
+        const confirmPass = document.getElementById('confirm-password').value;
+
+        if (newPass !== confirmPass) {
+            showMessageInModal('modal-message-container', "New passwords do not match.");
+            return;
+        }
+        if (newPass.length < 6) {
+            showMessageInModal('modal-message-container', "New password must be at least 6 characters long.");
+            return;
+        }
+        
+        setButtonState('modal-save-btn', `<span class="text-white">${icons.spinner}</span>`, true);
+        try {
+            await api.changePassword(current, newPass);
+            showMessageInModal('modal-message-container', "Password changed successfully!", 'success');
+            setTimeout(closeModal, 1500);
+        } catch (err) {
+            showMessageInModal('modal-message-container', err.message);
+            setButtonState('modal-save-btn', 'Update Password', false);
+        }
+    });
+};
+
+const openTariffModal = () => {
+    const modalHTML = `
+    <div data-modal class="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 p-4">
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-lg flex flex-col" style="height: 90vh; max-height: 700px" onclick="event.stopPropagation()">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+          <h2 class="text-xl font-bold text-gray-900 dark:text-white">Apply Tariff to Products</h2>
+          <button type="button" data-action="close-modal" class="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none">${icons.close}</button>
+        </div>
+        <div class="p-6 flex-grow overflow-y-auto">
+            <div class="mb-6">
+                <label for="tariff-percentage" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tariff Percentage (%)</label>
+                <input id="tariff-percentage" type="number" step="0.1" min="0" placeholder="e.g., 5.5" value="0" class="w-full px-3 py-2 text-gray-700 bg-white dark:bg-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div class="border rounded-lg border-gray-200 dark:border-gray-600">
+                <div class="p-3 bg-gray-50 dark:bg-gray-700/50 flex items-center"><input id="select-all" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" /><label for="select-all" class="ml-3 text-sm font-medium text-gray-800 dark:text-gray-200">Select All Products</label></div>
+                <ul id="tariff-product-list" class="divide-y divide-gray-200 dark:divide-gray-700 max-h-64 overflow-y-auto">
+                    ${state.products.map(p => `
+                        <li class="p-3 flex items-center hover:bg-gray-50 dark:hover:bg-gray-700">
+                           <input id="product-${p.id}" data-product-id="${p.id}" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                           <label for="product-${p.id}" class="ml-3 flex items-center gap-3 cursor-pointer"><span class="text-sm text-gray-800 dark:text-gray-200">${p.colorName}</span>${p.tariff > 0 ? `<span class="text-xs font-semibold text-green-600 dark:text-green-400">(Current: +${p.tariff}%)</span>` : ''}</label>
+                        </li>
+                    `).join('')}
+                </ul>
+            </div>
+            <div id="modal-message-container"></div>
+        </div>
+        <div class="p-6 bg-gray-50 dark:bg-gray-900 rounded-b-lg flex justify-between gap-4">
+            <button id="remove-tariff-btn" type="button" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:bg-red-400 disabled:cursor-not-allowed" disabled>Remove Tariff</button>
+            <div class="flex justify-end gap-4">
+                <button type="button" data-action="close-modal" class="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500">Cancel</button>
+                <button id="apply-tariff-btn" type="button" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed flex items-center gap-2" disabled>Apply Tariff</button>
+            </div>
+        </div>
+      </div>
+    </div>`;
+    openModal(modalHTML);
+    
+    const selectedIds = new Set();
+    const checkboxes = Array.from(document.querySelectorAll('#tariff-product-list input[type="checkbox"]'));
+    const selectAll = document.getElementById('select-all');
+    const applyBtn = document.getElementById('apply-tariff-btn');
+    const removeBtn = document.getElementById('remove-tariff-btn');
+
+    const updateSelection = () => {
+        selectedIds.clear();
+        checkboxes.forEach(cb => {
+            if (cb.checked) selectedIds.add(cb.dataset.productId);
+        });
+        selectAll.checked = selectedIds.size === checkboxes.length;
+        applyBtn.disabled = selectedIds.size === 0;
+        removeBtn.disabled = selectedIds.size === 0;
+    };
+    
+    document.getElementById('tariff-product-list').addEventListener('change', updateSelection);
+    selectAll.addEventListener('change', (e) => {
+        checkboxes.forEach(cb => cb.checked = e.target.checked);
+        updateSelection();
+    });
+
+    const handleSave = async (isRemove = false) => {
+        if (selectedIds.size === 0) {
+            showMessageInModal('modal-message-container', 'Please select at least one product.');
+            return;
+        }
+        const tariffValue = isRemove ? 0 : parseFloat(document.getElementById('tariff-percentage').value) || 0;
+        
+        setButtonState('apply-tariff-btn', `${icons.spinner} Saving...`, true);
+        setButtonState('remove-tariff-btn', 'Saving...', true);
+
+        const updatedProducts = state.products.map(p => selectedIds.has(p.id) ? { ...p, tariff: tariffValue } : p);
+
+        try {
+            await api.saveAllProducts(updatedProducts);
+            reloadDataFromSession();
+            closeModal();
+        } catch (err) {
+            showMessageInModal('modal-message-container', 'Failed to save tariff changes.');
+            setButtonState('apply-tariff-btn', 'Apply Tariff', false);
+            setButtonState('remove-tariff-btn', 'Remove Tariff', false);
+            updateSelection();
+        }
+    };
+
+    applyBtn.addEventListener('click', () => handleSave(false));
+    removeBtn.addEventListener('click', () => handleSave(true));
+};
+
+const openEditPriceModal = (productId) => {
+    const product = state.products.find(p => p.id === productId);
+    if (!product) return;
+
+    const sortedTiers = [...product.priceTiers].sort((a,b) => a.pounds - b.pounds);
+
+    const modalHTML = `
+    <div data-modal class="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 p-4">
+      <form id="edit-price-form" class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-md" onclick="event.stopPropagation()">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+          <h2 class="text-xl font-bold text-gray-900 dark:text-white">Edit Prices for ${product.colorName}</h2>
+          <button type="button" data-action="close-modal" class="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none">${icons.close}</button>
+        </div>
+        <div class="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
+            ${sortedTiers.map((tier, index) => {
+                const nextTier = sortedTiers[index + 1];
+                const tierLabel = nextTier ? `${tier.pounds} - ${nextTier.pounds - 1} lbs` : `${tier.pounds}+ lbs`;
+                return `
+                <div class="flex items-center gap-4">
+                    <label class="w-28 text-gray-600 dark:text-gray-300 font-medium text-right">${tierLabel}</label>
+                    <div class="relative flex-grow">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">$</span>
+                        <input type="number" step="0.01" min="0" value="${tier.pricePerPound}" data-pounds="${tier.pounds}" class="w-full pl-7 pr-3 py-2 text-gray-700 bg-white dark:bg-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                </div>`;
+            }).join('')}
+        </div>
+        <div class="p-6 bg-gray-50 dark:bg-gray-900 rounded-b-lg flex justify-end gap-4">
+          <button type="button" data-action="close-modal" class="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500">Cancel</button>
+          <button id="modal-save-btn" type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed flex items-center gap-2">${icons.save} Save Changes</button>
+        </div>
+      </form>
+    </div>`;
+    openModal(modalHTML);
+    
+    document.getElementById('edit-price-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        setButtonState('modal-save-btn', `${icons.spinner} Saving...`, true);
+
+        const inputs = Array.from(e.target.querySelectorAll('input[type="number"]'));
+        const newPriceTiers = inputs.map(input => ({
+            pounds: parseInt(input.dataset.pounds),
+            pricePerPound: parseFloat(input.value) || 0,
+        }));
+        
+        const updatedProduct = { ...product, priceTiers: newPriceTiers };
+
+        try {
+            await api.updateSingleProduct(updatedProduct);
+            reloadDataFromSession();
+            closeModal();
+        } catch (err) {
+            alert('Failed to save product.'); // Simple error handling
+            setButtonState('modal-save-btn', `${icons.save} Save Changes`, false);
+        }
+    });
+};
+
+const openPasswordModal = () => {
+    const modalHTML = `
+    <div data-modal class="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 p-4">
+      <form id="password-form" class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-sm" onclick="event.stopPropagation()">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+          <h2 class="text-xl font-bold text-gray-900 dark:text-white">Editor Access</h2>
+          <button type="button" data-action="close-modal" class="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none">${icons.close}</button>
+        </div>
+        <div class="p-6 space-y-4">
+          <p class="text-sm text-gray-600 dark:text-gray-300">Please enter the password to access editor functionalities.</p>
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">${icons.lock}</div>
+            <input id="editor-password" type="password" required autofocus class="w-full pl-10 pr-3 py-2 text-gray-700 bg-white dark:bg-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Password" />
+          </div>
+          <div id="modal-message-container"></div>
+        </div>
+        <div class="p-6 bg-gray-50 dark:bg-gray-900 rounded-b-lg flex justify-end gap-4">
+          <button type="button" data-action="close-modal" class="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500">Cancel</button>
+          <button id="modal-submit-btn" type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed flex items-center justify-center min-w-[110px]">Log In</button>
+        </div>
+      </form>
+    </div>`;
+    openModal(modalHTML);
+    
+    document.getElementById('password-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const password = document.getElementById('editor-password').value;
+        setButtonState('modal-submit-btn', `<span class="text-white">${icons.spinner}</span>`, true);
+        
+        const isValid = await api.verifyPassword(password);
+        if (isValid) {
+            state.userRole = 'Editor';
+            renderApp();
+            closeModal();
+        } else {
+            showMessageInModal('modal-message-container', 'Incorrect password.');
+            setButtonState('modal-submit-btn', 'Log In', false);
+            document.getElementById('editor-password').classList.add('border-red-500', 'focus:ring-red-500');
+        }
+    });
+};
+
 
 // --- EVENT HANDLERS ---
 const handleSearch = (e) => {
     state.searchTerm = e.target.value;
-    renderProductList();
+    document.getElementById('product-list-container').innerHTML = createProductListHTML();
 };
 
 const handleRoleChange = (e) => {
@@ -440,60 +745,35 @@ const reloadDataFromSession = () => {
     renderApp();
 };
 
-const openPasswordModal = () => {
-    // A simplified placeholder for the actual modal logic
-    const password = prompt("Enter editor password:");
-    if (password) {
-        api.verifyPassword(password).then(isValid => {
-            if (isValid) {
-                state.userRole = 'Editor';
-                renderApp();
-            } else {
-                alert('Incorrect password.');
-                // Reset dropdown
-                document.getElementById('role-selector').value = 'Observer';
-            }
-        });
-    } else {
-        document.getElementById('role-selector').value = 'Observer';
-    }
-};
-
-// ... Other handlers for edit, save, upload modals would go here...
-
-
 // --- EVENT LISTENERS SETUP ---
 const attachEventListeners = () => {
-    const searchBar = document.getElementById('search-bar');
-    searchBar?.addEventListener('input', handleSearch);
-
-    const roleSelector = document.getElementById('role-selector');
-    roleSelector?.addEventListener('change', handleRoleChange);
+    document.getElementById('search-bar')?.addEventListener('input', handleSearch);
+    document.getElementById('role-selector')?.addEventListener('change', handleRoleChange);
     
-    // Event delegation for dynamic buttons
-    appContainer.addEventListener('click', (e) => {
+    // Use event delegation on a stable parent element
+    const container = appContainer.querySelector('.min-h-screen');
+    container?.addEventListener('click', (e) => {
         const button = e.target.closest('button[data-action]');
         if (!button) return;
 
         const action = button.dataset.action;
+        const productId = button.dataset.productId;
+
         switch (action) {
-            case 'download-db':
-                handleDownloadData();
-                break;
-            case 'upload-csv':
-                openCsvUploadModal();
-                break;
-            // Add cases for 'upload-db', 'edit-product', etc.
-            // These would call functions to open their respective modals.
+            case 'edit-product':        openEditPriceModal(productId); break;
+            case 'upload-logo':         openUploadLogoModal(); break;
+            case 'change-password':     openChangePasswordModal(); break;
+            case 'apply-tariffs':       openTariffModal(); break;
+            case 'upload-csv':          openCsvUploadModal(); break;
+            case 'upload-db':           openDbUploadModal(); break;
+            case 'download-db':         handleDownloadData(); break;
         }
     });
 };
 
 // --- INITIALIZATION ---
 const init = async () => {
-  state.isLoading = true;
-  renderApp();
-
+  renderApp(); // Initial render with loading state
   try {
     await api.initializeData();
     const data = api.getFullDataState();
@@ -502,12 +782,10 @@ const init = async () => {
     state.error = null;
   } catch (err) {
     state.error = 'Failed to load application data. Please try again later.';
-    console.error(err);
   } finally {
     state.isLoading = false;
-    renderApp();
+    renderApp(); // Re-render with final data or error
   }
 };
 
-// --- START THE APP ---
 init();
