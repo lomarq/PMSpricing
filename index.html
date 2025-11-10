@@ -9,17 +9,16 @@
 {
   "imports": {
     "react": "https://aistudiocdn.com/react@^19.2.0",
-    "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/"
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/"
   }
 }
 </script>
-    <!-- 1. Add Babel for in-browser transpilation -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
   <body class="bg-gray-100 dark:bg-gray-900">
-    <div id="root"></div>
-    <!-- 2. Change the script type to "text/babel" to enable transpilation -->
-    <script type="text/babel" data-type="module" src="./index.tsx"></script>
+    <div id="app-container">
+        <!-- App content is rendered here by app.js -->
+    </div>
+    <script type="module" src="./app.js"></script>
   </body>
 </html>
