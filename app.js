@@ -1,3 +1,4 @@
+
 import * as api from './services/googleSheetsService.js';
 
 // --- STATE MANAGEMENT ---
@@ -26,6 +27,43 @@ const icons = {
   logo: `<svg class="h-8 w-8 text-blue-600 dark:text-blue-500" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2L2 7V17L12 22L22 17V7L12 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /><path d="M2 7L12 12M12 22V12M22 7L12 12M16.5 4.5L7.5 9.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>`,
   spinner: `<svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>`
 };
+
+// --- HELPER FUNCTIONS ---
+const parseCsvRow = (row) => {
+  const result = [];
+  let current = '';
+  let inQuote = false;
+  for (let i = 0; i < row.length; i++) {
+    const char = row[i];
+    if (char === '"') {
+      inQuote = !inQuote;
+    } else if (char === ',' && !inQuote) {
+      result.push(current.trim());
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  result.push(current.trim());
+  return result;
+};
+
+const safeParseFloat = (str) => {
+    if (typeof str !== 'string' || str.trim() === '') {
+        return null;
+    }
+    let cleaned = str.replace(/[^0-9.,-]+/g, "").trim();
+    const lastComma = cleaned.lastIndexOf(',');
+    const lastPeriod = cleaned.lastIndexOf('.');
+    if (lastComma > lastPeriod) {
+        cleaned = cleaned.replace(/\./g, '').replace(',', '.');
+    } else {
+        cleaned = cleaned.replace(/,/g, '');
+    }
+    const num = parseFloat(cleaned);
+    return isNaN(num) ? null : num;
+};
+
 
 // --- TEMPLATE GENERATORS ---
 
@@ -173,13 +211,178 @@ const renderProductList = () => {
 };
 
 // --- MODAL HANDLING ---
-// (A simplified version of modal logic follows for brevity. 
-// A full implementation would have separate template/handler functions for each modal type.)
+
+const createCsvUploadModalHTML = () => {
+    return `
+    <div data-modal class="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 p-4">
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-lg" onclick="event.stopPropagation()">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+          <h2 class="text-xl font-bold text-gray-900 dark:text-white">Upload Products from CSV</h2>
+          <button type="button" data-action="close-modal" class="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none" aria-label="Close modal">
+            ${icons.close}
+          </button>
+        </div>
+        <div class="p-6 space-y-4">
+            <div class="bg-blue-50 dark:bg-gray-700 border-l-4 border-blue-400 p-4 rounded-md text-left">
+                <p class="text-sm text-blue-800 dark:text-blue-200">
+                  This will <strong class="font-semibold">replace all current products</strong> with data from the CSV file. Your logo and editor password will not be affected.
+                </p>
+                <p class="text-xs text-blue-700 dark:text-blue-300 mt-2">
+                    <strong>Required Headers:</strong> <code class="font-mono text-xs bg-gray-200 dark:bg-gray-600 rounded px-1">id, colorname, price_5_24, price_25_89, price_90_499, price_500_plus</code>
+                </p>
+                 <p class="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                    Empty price cells will be filled with the last valid price from their row.
+                </p>
+            </div>
+            <div>
+              <label for="csv-upload-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Select CSV File
+              </label>
+              <input
+                id="csv-upload-input"
+                type="file"
+                accept=".csv, text/csv"
+                class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-blue-900 dark:file:text-blue-200 dark:hover:file:bg-blue-800"
+              />
+            </div>
+            <div id="csv-message-container"></div>
+        </div>
+        <div class="p-6 bg-gray-50 dark:bg-gray-900 rounded-b-lg flex justify-end gap-4">
+          <button id="csv-cancel-btn" type="button" data-action="close-modal" class="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500">
+            Cancel
+          </button>
+          <button id="csv-process-btn" type="button" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-green-400 disabled:cursor-not-allowed flex items-center gap-2" disabled>
+            Process File
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+};
+
+const openCsvUploadModal = () => {
+    openModal(createCsvUploadModalHTML());
+
+    const fileInput = document.getElementById('csv-upload-input');
+    const processBtn = document.getElementById('csv-process-btn');
+    const cancelBtn = document.getElementById('csv-cancel-btn');
+    const messageContainer = document.getElementById('csv-message-container');
+    
+    let selectedFile = null;
+
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files && e.target.files.length > 0) {
+            selectedFile = e.target.files[0];
+            processBtn.disabled = false;
+            messageContainer.innerHTML = ''; // Clear previous messages
+        } else {
+            selectedFile = null;
+            processBtn.disabled = true;
+        }
+    });
+
+    processBtn.addEventListener('click', async () => {
+        if (!selectedFile) {
+            messageContainer.innerHTML = `<p class="text-sm text-red-500 mt-2">Please select a file to upload.</p>`;
+            return;
+        }
+
+        processBtn.disabled = true;
+        processBtn.innerHTML = `${icons.spinner} Processing...`;
+        messageContainer.innerHTML = '';
+
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+            try {
+                const text = event.target?.result;
+                if (!text) throw new Error('File is empty or could not be read.');
+
+                const lines = text.split(/\r\n|\n/);
+                if (lines[0].charCodeAt(0) === 0xFEFF) { // Remove BOM
+                    lines[0] = lines[0].substring(1);
+                }
+
+                const REQUIRED_HEADERS = ['id', 'colorname', 'price_5_24', 'price_25_89', 'price_90_499', 'price_500_plus'];
+                const POUND_LEVELS = [5, 25, 90, 500];
+
+                const headerRow = lines.shift()?.toLowerCase() ?? '';
+                const headers = parseCsvRow(headerRow).map(h => h.replace(/"/g, '').trim());
+                
+                const headerMap = {};
+                headers.forEach((h, i) => { headerMap[h] = i; });
+
+                const missingHeaders = REQUIRED_HEADERS.filter(h => headerMap[h] === undefined);
+                if (missingHeaders.length > 0) {
+                    throw new Error(`CSV headers are incorrect or missing. Missing: [${missingHeaders.join(', ')}].`);
+                }
+
+                const newProducts = [];
+                lines.forEach((line, index) => {
+                    if (line.trim() === '') return;
+                    
+                    const values = parseCsvRow(line);
+                    const priceValues = REQUIRED_HEADERS.slice(2).map(h => safeParseFloat(values[headerMap[h]]));
+
+                    let lastValidPrice = null;
+                    for (let i = 0; i < priceValues.length; i++) {
+                        if (priceValues[i] !== null) {
+                            lastValidPrice = priceValues[i];
+                        } else if (lastValidPrice !== null) {
+                            priceValues[i] = lastValidPrice;
+                        }
+                    }
+                    if(lastValidPrice !== null) {
+                        for(let i=0; i < priceValues.length; i++) {
+                            if(priceValues[i] === null) priceValues[i] = lastValidPrice;
+                        }
+                    }
+
+                    if (priceValues.some(p => p === null)) {
+                        console.warn(`Skipping row ${index + 2}: Contains a row with no valid prices.`);
+                        return;
+                    }
+
+                    const priceTiers = POUND_LEVELS.map((pounds, i) => ({
+                        pounds,
+                        pricePerPound: priceValues[i],
+                    }));
+                    
+                    newProducts.push({
+                        id: values[headerMap['id']].replace(/"/g, ''),
+                        colorName: values[headerMap['colorname']].replace(/"/g, ''),
+                        priceTiers,
+                    });
+                });
+
+                if (newProducts.length === 0) {
+                  throw new Error("File processed, but no valid product rows were found. Please check the file's content, formatting, and headers.");
+                }
+
+                await api.saveAllProducts(newProducts);
+                messageContainer.innerHTML = `<p class="text-sm text-green-500 mt-2">${newProducts.length} product(s) successfully loaded from CSV.</p>`;
+                cancelBtn.textContent = 'Close';
+                processBtn.innerHTML = 'Process File';
+                reloadDataFromSession();
+
+            } catch (err) {
+                messageContainer.innerHTML = `<p class="text-sm text-red-500 mt-2">${err.message || 'An unexpected error occurred.'}</p>`;
+                 processBtn.disabled = false;
+                 processBtn.innerHTML = 'Process File';
+            }
+        };
+        reader.onerror = () => {
+            messageContainer.innerHTML = `<p class="text-sm text-red-500 mt-2">Failed to read the file.</p>`;
+            processBtn.disabled = false;
+            processBtn.innerHTML = 'Process File';
+        };
+        reader.readAsText(selectedFile);
+    });
+};
+
 const openModal = (modalHTML) => {
     const modalContainer = document.getElementById('modal-container');
     if (modalContainer) {
         modalContainer.innerHTML = modalHTML;
-        // Attach modal-specific event listeners
         const modalElement = modalContainer.querySelector('[data-modal]');
         modalElement?.addEventListener('click', (e) => {
             if (e.target === modalElement || e.target.closest('[data-action="close-modal"]')) {
@@ -213,7 +416,6 @@ const handleSearch = (e) => {
 const handleRoleChange = (e) => {
     const newRole = e.target.value;
     if (newRole === 'Editor') {
-        // This would be replaced with the actual password modal logic
         openPasswordModal();
     } else {
         state.userRole = 'Observer';
@@ -258,10 +460,6 @@ const openPasswordModal = () => {
 };
 
 // ... Other handlers for edit, save, upload modals would go here...
-// Due to character limits, a full implementation of every single modal is not feasible here.
-// This example focuses on the core refactoring from React to vanilla JS.
-// The real application would have a function like `openEditModal(productId)` which would
-// find the product, generate the specific modal HTML, open it, and attach save handlers.
 
 
 // --- EVENT LISTENERS SETUP ---
@@ -282,7 +480,10 @@ const attachEventListeners = () => {
             case 'download-db':
                 handleDownloadData();
                 break;
-            // Add cases for 'upload-db', 'upload-csv', 'edit-product', etc.
+            case 'upload-csv':
+                openCsvUploadModal();
+                break;
+            // Add cases for 'upload-db', 'edit-product', etc.
             // These would call functions to open their respective modals.
         }
     });
