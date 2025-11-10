@@ -10,12 +10,13 @@ services:
     headers:
       - path: "**/*.tsx"
         name: Content-Type
-        value: text/javascript
+        value: application/javascript
       - path: "**/*.ts"
         name: Content-Type
-        value: text/javascript
+        value: application/javascript
     routes:
-      # Rewrite all requests to index.html to support client-side routing.
+      # If a request does not match a static file, serve index.html.
+      # This is standard for single-page applications.
       - type: rewrite
         source: "/*"
         destination: "/index.html"
